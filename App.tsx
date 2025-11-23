@@ -3,7 +3,7 @@ import { ControlBar } from './components/ControlBar';
 import { ChatSidebar } from './components/ChatSidebar';
 import { Message, AppState } from './types';
 import { generateAIResponse, generateSpeech } from './services/geminiService';
-import { Sparkles, Mic, User } from 'lucide-react';
+import { Sparkles, Mic, User, AlertCircle } from 'lucide-react';
 
 // Web Speech API Type Definition
 interface IWindow extends Window {
@@ -18,6 +18,7 @@ export default function App() {
   const [isChatOpen, setIsChatOpen] = useState(true);
   const [isMicOn, setIsMicOn] = useState(false); // Controls logical mic state (permission + intent)
   const [stream, setStream] = useState<MediaStream | null>(null);
+  const [error, setError] = useState<string | null>(null);
   
   // Refs
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -34,7 +35,9 @@ export default function App() {
   useEffect(() => {
     // Initialize AudioContext on user interaction if needed, or immediately
     const AudioContextClass = (window as any).AudioContext || (window as any).webkitAudioContext;
-    audioContextRef.current = new AudioContextClass();
+    if (AudioContextClass) {
+      audioContextRef.current = new AudioContextClass();
+    }
     return () => {
       audioContextRef.current?.close();
     };
@@ -46,7 +49,7 @@ export default function App() {
     const SpeechRecognitionClass = SpeechRecognition || webkitSpeechRecognition;
 
     if (!SpeechRecognitionClass) {
-      alert("Browser not supported. Please use Chrome.");
+      setError("Speech recognition not supported in this browser. Please use Chrome or Edge.");
       return;
     }
 
@@ -98,13 +101,18 @@ export default function App() {
 
   const captureScreen = (): string | null => {
     if (!videoRef.current) return null;
-    const canvas = document.createElement('canvas');
-    canvas.width = videoRef.current.videoWidth || 1280;
-    canvas.height = videoRef.current.videoHeight || 720;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return null;
-    ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
-    return canvas.toDataURL('image/jpeg', 0.8);
+    try {
+      const canvas = document.createElement('canvas');
+      canvas.width = videoRef.current.videoWidth || 1280;
+      canvas.height = videoRef.current.videoHeight || 720;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return null;
+      ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
+      return canvas.toDataURL('image/jpeg', 0.8);
+    } catch (e) {
+      console.error("Error capturing screen frame:", e);
+      return null;
+    }
   };
 
   const handleUserSpeech = async (text: string) => {
@@ -126,12 +134,7 @@ export default function App() {
     }
 
     // 3. Send to Gemini
-    // If no screen share, we send a blank placeholder or handle gracefully in service
-    // For this demo, we assume screen share is active or image is optional. 
-    // If stream is null, imageBase64 is empty.
-    
-    // Slight artificial delay for UX "thinking" feel if API is too fast
-    await new Promise(r => setTimeout(r, 600));
+    await new Promise(r => setTimeout(r, 600)); // UI delay
 
     const aiText = await generateAIResponse(text, imageBase64);
 
@@ -161,6 +164,11 @@ export default function App() {
 
   const playAudioResponse = (buffer: AudioBuffer) => {
     if (!audioContextRef.current) return;
+    // Resume context if suspended (browser policy)
+    if (audioContextRef.current.state === 'suspended') {
+      audioContextRef.current.resume();
+    }
+
     const source = audioContextRef.current.createBufferSource();
     source.buffer = buffer;
     source.connect(audioContextRef.current.destination);
@@ -175,6 +183,7 @@ export default function App() {
   // --- Handlers ---
 
   const toggleScreenShare = async () => {
+    setError(null);
     if (stream) {
       // Stop sharing
       stream.getTracks().forEach(track => track.stop());
@@ -184,10 +193,22 @@ export default function App() {
     } else {
       // Start sharing
       try {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
+          throw new Error("Screen sharing is not supported in this environment (requires secure context/HTTPS).");
+        }
+
         const displayMedia = await navigator.mediaDevices.getDisplayMedia({
-          video: { cursor: "always" } as any,
+          video: true, // Use simple default constraints for maximum compatibility
           audio: false
         });
+
+        // Handle user clicking "Stop sharing" from the browser native UI
+        displayMedia.getVideoTracks()[0].onended = () => {
+          setStream(null);
+          if (videoRef.current) videoRef.current.srcObject = null;
+          setAppState(AppState.IDLE);
+        };
+
         setStream(displayMedia);
         if (videoRef.current) {
           videoRef.current.srcObject = displayMedia;
@@ -197,19 +218,23 @@ export default function App() {
         // Auto-enable mic if not on
         if (!isMicOn) {
             setIsMicOn(true);
-            // Trigger recognition setup
             startRecognition();
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error("Error sharing screen:", err);
-        alert("Failed to share screen. Please ensure permission is granted.");
+        if (err.name === 'NotAllowedError') {
+             setError("Permission denied. If you didn't cancel, check OS Screen Recording permissions.");
+        } else if (err.message && err.message.includes('display-capture')) {
+             setError("Screen sharing disabled by policy. Check browser permissions.");
+        } else {
+             setError("Failed to share screen: " + (err.message || "Unknown error"));
+        }
       }
     }
   };
 
   const toggleMic = () => {
     if (!isMicOn) {
-        // Check permissions or start
         setIsMicOn(true);
         startRecognition();
     } else {
@@ -237,18 +262,26 @@ export default function App() {
                 className="w-full h-full object-contain"
               />
             ) : (
-              <div className="flex flex-col items-center justify-center text-gray-400">
+              <div className="flex flex-col items-center justify-center text-gray-400 max-w-md text-center px-6">
                 <div className="bg-[#5f6368] p-8 rounded-full mb-4 opacity-50">
                    <MonitorPlaceholder />
                 </div>
                 <h3 className="text-xl font-medium mb-2">No screen is being shared</h3>
                 <p className="text-sm opacity-70 mb-6">Click the present button below to share your code.</p>
+                
                 <button 
                     onClick={toggleScreenShare}
-                    className="bg-[#8ab4f8] text-[#202124] px-6 py-2 rounded-full font-medium hover:bg-[#aecbfa] transition"
+                    className="bg-[#8ab4f8] text-[#202124] px-6 py-2 rounded-full font-medium hover:bg-[#aecbfa] transition mb-4"
                 >
                     Present Screen
                 </button>
+
+                {error && (
+                  <div className="flex items-center gap-2 text-red-300 bg-red-900/30 border border-red-500/30 px-4 py-3 rounded-lg text-sm text-left">
+                    <AlertCircle size={20} className="shrink-0" />
+                    <span>{error}</span>
+                  </div>
+                )}
               </div>
             )}
 
@@ -276,45 +309,4 @@ export default function App() {
 
              {/* User Audio Status Overlay */}
              <div className="absolute bottom-4 left-4 flex items-center gap-2">
-                 <div className="bg-[#202124] bg-opacity-60 backdrop-blur rounded-full px-3 py-1.5 flex items-center gap-2 text-white text-sm border border-white/10">
-                    <div className={`p-1 rounded-full ${isMicOn ? 'bg-blue-500' : 'bg-red-500'}`}>
-                        <Mic size={12} />
-                    </div>
-                    <span>You</span>
-                 </div>
-             </div>
-
-          </div>
-        </div>
-
-        {/* Right: Chat Sidebar */}
-        <div className={`transition-all duration-300 ease-in-out ${isChatOpen ? 'w-96 mr-4 my-4' : 'w-0 opacity-0 overflow-hidden'}`}>
-             <ChatSidebar 
-                isOpen={isChatOpen} 
-                onClose={() => setIsChatOpen(false)} 
-                messages={messages}
-                isProcessing={appState === AppState.PROCESSING}
-             />
-        </div>
-      </div>
-
-      {/* Bottom Controls */}
-      <ControlBar 
-        isMicOn={isMicOn}
-        isScreenSharing={!!stream}
-        isChatOpen={isChatOpen}
-        onToggleMic={toggleMic}
-        onToggleScreenShare={toggleScreenShare}
-        onToggleChat={() => setIsChatOpen(!isChatOpen)}
-      />
-    </div>
-  );
-}
-
-const MonitorPlaceholder = () => (
-    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">
-        <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
-        <line x1="8" y1="21" x2="16" y2="21"></line>
-        <line x1="12" y1="17" x2="12" y2="21"></line>
-    </svg>
-);
+                 <
