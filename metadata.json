@@ -1,0 +1,9 @@
+{
+  "name": "Gemini Pair Programmer",
+  "description": "A Google Meet-style collaboration tool where you share your screen and code with an AI agent in real-time.",
+  "requestFramePermissions": [
+    "microphone",
+    "camera",
+    "display-capture"
+  ]
+}
