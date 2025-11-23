@@ -1,25 +1,29 @@
 import React from 'react';
-import { Mic, MicOff, Monitor, MonitorOff, PhoneOff, MessageSquare, MoreVertical, Info } from 'lucide-react';
+import { Mic, MicOff, Monitor, MonitorOff, PhoneOff, MessageSquare, MoreVertical, Info, Github } from 'lucide-react';
 
 interface ControlBarProps {
   isMicOn: boolean;
   isScreenSharing: boolean;
+  isGitHubConnected: boolean;
   isChatOpen: boolean;
   onToggleMic: () => void;
   onToggleScreenShare: () => void;
+  onToggleGitHub: () => void;
   onToggleChat: () => void;
 }
 
 export const ControlBar: React.FC<ControlBarProps> = ({
   isMicOn,
   isScreenSharing,
+  isGitHubConnected,
   isChatOpen,
   onToggleMic,
   onToggleScreenShare,
+  onToggleGitHub,
   onToggleChat,
 }) => {
   return (
-    <div className="h-20 bg-[#202124] flex items-center justify-between px-6 shrink-0 relative z-50">
+    <div className="h-20 bg-[#202124] flex items-center justify-between px-6 shrink-0 relative z-50 border-t border-gray-800">
       {/* Left info (Time/Code) */}
       <div className="hidden md:flex items-center text-white min-w-[200px]">
         <span className="font-medium text-lg">Gemini Pair</span>
@@ -44,9 +48,19 @@ export const ControlBar: React.FC<ControlBarProps> = ({
           className={`p-4 rounded-full transition-colors ${
             isScreenSharing ? 'bg-[#8ab4f8] text-gray-900 hover:bg-[#aecbfa]' : 'bg-[#3c4043] hover:bg-[#4a4f54] text-white'
           }`}
-          title="Present now"
+          title="Share screen"
         >
           {isScreenSharing ? <Monitor size={24} /> : <MonitorOff size={24} />}
+        </button>
+
+        <button
+          onClick={onToggleGitHub}
+          className={`p-4 rounded-full transition-colors ${
+            isGitHubConnected ? 'bg-[#34a853] text-white hover:bg-[#46bd65]' : 'bg-[#3c4043] hover:bg-[#4a4f54] text-white'
+          }`}
+          title="Connect GitHub"
+        >
+           <Github size={24} />
         </button>
 
         <button className="p-4 rounded-full bg-[#3c4043] hover:bg-[#4a4f54] text-white hidden sm:block">

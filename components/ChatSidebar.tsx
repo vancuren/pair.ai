@@ -7,9 +7,20 @@ interface ChatSidebarProps {
   onClose: () => void;
   messages: Message[];
   isProcessing: boolean;
+  onSendMessage: (text: string) => void;
+  inputValue: string;
+  onInputChange: (value: string) => void;
 }
 
-export const ChatSidebar: React.FC<ChatSidebarProps> = ({ isOpen, onClose, messages, isProcessing }) => {
+export const ChatSidebar: React.FC<ChatSidebarProps> = ({ 
+  isOpen, 
+  onClose, 
+  messages, 
+  isProcessing,
+  onSendMessage,
+  inputValue,
+  onInputChange
+}) => {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -17,6 +28,20 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({ isOpen, onClose, messa
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages, isProcessing]);
+
+  const handleSend = () => {
+    if (inputValue.trim() && !isProcessing) {
+      onSendMessage(inputValue);
+      onInputChange(""); // Clear input after manual send
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -73,17 +98,26 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({ isOpen, onClose, messa
       </div>
 
       <div className="p-4 bg-white border-t border-gray-200">
-        <div className="bg-gray-100 rounded-full px-4 py-3 flex items-center gap-2 text-gray-500 cursor-not-allowed">
+        <div className={`bg-gray-100 rounded-full px-4 py-2 flex items-center gap-2 border transition-colors ${isProcessing ? 'opacity-50' : 'border-transparent focus-within:border-blue-400 focus-within:bg-white'}`}>
            <input 
              type="text" 
-             disabled 
-             placeholder="Speak to interact..." 
-             className="bg-transparent flex-1 outline-none text-sm cursor-not-allowed"
+             value={inputValue}
+             onChange={(e) => onInputChange(e.target.value)}
+             onKeyDown={handleKeyDown}
+             disabled={isProcessing}
+             placeholder="Type or speak..."
+             className="bg-transparent flex-1 outline-none text-sm py-2 disabled:cursor-not-allowed"
            />
-           <Send size={18} />
+           <button 
+             onClick={handleSend}
+             disabled={!inputValue.trim() || isProcessing}
+             className={`p-2 rounded-full transition-colors ${inputValue.trim() && !isProcessing ? 'text-blue-600 hover:bg-blue-50' : 'text-gray-400'}`}
+           >
+             <Send size={18} />
+           </button>
         </div>
         <p className="text-xs text-center text-gray-400 mt-2">
-          Voice mode active. Speak to chat.
+           Type a message or use voice to interact
         </p>
       </div>
     </div>
