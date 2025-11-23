@@ -46,7 +46,7 @@ export async function generateAIResponse(
   previousHistory: any[] = [] // Not fully implemented in this simple demo, but good for future
 ): Promise<ToolCallResponse> {
   try {
-    const model = 'gemini-2.5-flash';
+    const model = 'gemini-3-pro-preview';
     
     // --- Screen Share Mode ---
     if (!isGitHubMode && imageBase64) {
@@ -60,7 +60,7 @@ export async function generateAIResponse(
           ]
         },
         config: {
-          systemInstruction: "You are an expert pair programmer. You are looking at the user's screen. Keep answers concise.",
+          systemInstruction: "You are an expert pair programmer. You are looking at the user's screen. Keep answers concise. just a sentence or two.",
         }
       });
       return { functionCalls: [], text: response.text || "I didn't catch that." };
@@ -146,11 +146,12 @@ function pcmToAudioBuffer(
 
 export async function generateSpeech(text: string, audioContext: AudioContext): Promise<AudioBuffer | null> {
   try {
-    // Truncate long code blocks for speech to avoid reading 100 lines of code
-    const speakableText = text.replace(/```[\s\S]*?```/g, "I've provided the code in the chat.");
+    // Truncate long code blocks for speech to avoid reading 100 lines of code.
+    // Replaces ```...``` with "Code block" to be spoken briefly.
+    const speakableText = text.replace(/```[\s\S]*?```/g, " Code block. ");
 
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash-preview-tts",
+      model: "gemini-2.5-flash-native-audio-preview-09-2025",
       contents: { parts: [{ text: speakableText }] },
       config: {
         responseModalities: [Modality.AUDIO],

@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { Message } from '../types';
-import { X, Send, Sparkles } from 'lucide-react';
+import { X, Send, Sparkles, Copy } from 'lucide-react';
 
 interface ChatSidebarProps {
   isOpen: boolean;
@@ -43,13 +43,42 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
     }
   };
 
+  // Simple parser to render Code Blocks nicely
+  const formatMessage = (text: string) => {
+    // Split text by markdown code blocks (```...```)
+    const parts = text.split(/(```[\s\S]*?```)/g);
+
+    return parts.map((part, index) => {
+      // Check if this part is a code block
+      if (part.startsWith('```') && part.endsWith('```')) {
+        // Remove the backticks and optional language identifier (e.g. ```typescript\n)
+        const content = part.slice(3, -3).replace(/^[a-zA-Z0-9]*\n/, ''); 
+        
+        return (
+          <div key={index} className="my-3 rounded-lg overflow-hidden border border-gray-700 bg-[#1e1e1e] shadow-sm">
+            <div className="bg-[#2d2d2d] px-3 py-1 text-[10px] text-gray-400 flex justify-between items-center border-b border-gray-700">
+               <span className="font-mono">CODE</span>
+               <Copy size={12} className="cursor-pointer hover:text-white" onClick={() => navigator.clipboard.writeText(content.trim())}/>
+            </div>
+            <pre className="p-3 overflow-x-auto">
+              <code className="font-mono text-xs text-blue-300 whitespace-pre">{content.trim()}</code>
+            </pre>
+          </div>
+        );
+      }
+      
+      // Regular text with basic newline handling
+      return <span key={index} className="whitespace-pre-wrap">{part}</span>;
+    });
+  };
+
   if (!isOpen) return null;
 
   return (
-    <div className="w-96 bg-white flex flex-col h-full rounded-l-2xl shadow-xl overflow-hidden shrink-0 animate-in slide-in-from-right duration-300">
-      <div className="h-16 flex items-center justify-between px-6 border-b border-gray-200">
+    <div className="w-96 bg-white flex flex-col h-full rounded-l-2xl shadow-xl overflow-hidden shrink-0 animate-in slide-in-from-right duration-300 border-l border-gray-200">
+      <div className="h-16 flex items-center justify-between px-6 border-b border-gray-200 bg-white z-10">
         <h2 className="text-gray-800 font-medium text-lg">In-call messages</h2>
-        <button onClick={onClose} className="text-gray-500 hover:bg-gray-100 p-2 rounded-full">
+        <button onClick={onClose} className="text-gray-500 hover:bg-gray-100 p-2 rounded-full transition-colors">
           <X size={20} />
         </button>
       </div>
@@ -70,13 +99,13 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
               </span>
             </div>
             <div 
-              className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-sm ${
+              className={`max-w-[95%] rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-sm ${
                 msg.sender === 'user' 
                   ? 'bg-[#e8f0fe] text-gray-800 rounded-tr-none' 
                   : 'bg-white border border-gray-200 text-gray-800 rounded-tl-none'
               }`}
             >
-              {msg.text}
+              {formatMessage(msg.text)}
             </div>
           </div>
         ))}
@@ -105,8 +134,8 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
              onChange={(e) => onInputChange(e.target.value)}
              onKeyDown={handleKeyDown}
              disabled={isProcessing}
-             placeholder="Type or speak..."
-             className="bg-transparent flex-1 outline-none text-sm py-2 disabled:cursor-not-allowed"
+             placeholder={isProcessing ? "Gemini is thinking..." : "Type or speak..."}
+             className="bg-transparent flex-1 outline-none text-sm py-2 disabled:cursor-not-allowed text-gray-900 placeholder-gray-500"
            />
            <button 
              onClick={handleSend}
