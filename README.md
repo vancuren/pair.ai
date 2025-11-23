@@ -1,16 +1,16 @@
-# Pair.AI 🤝
+# Pair.AI ✨ 
 
 > Meet your new AI pair programmer — inside a familiar, Google-Meets-style chat room.
 
 **Pair.AI** reimagines collaborative coding by bringing AI pair programming into a natural, conversational interface. Just talk naturally, share your screen, explain your idea, or point at the code you're stuck on. No more context switching between your IDE and a chatbot.
 
-## 🎯 Problem Statement
+## Problem Statement
 
 **Statement Three: Collaborative Code Generation Tooling**
 
 Coding with AI shouldn't be a solo activity. How can we build collaborative environments where humans and AI co-develop, review, and deploy software together in real time, supporting both human-to-human and human-to-AI interactions? How can AI tools integrate seamlessly into existing team workflows to optimize live collaboration and collective problem-solving?
 
-## ✨ Solution
+## Solution
 
 Pair.AI creates a **real-time collaborative coding environment** that feels as natural as a video call with a colleague. Instead of copying code snippets into a chat window, you:
 
@@ -21,13 +21,13 @@ Pair.AI creates a **real-time collaborative coding environment** that feels as n
 
 ### Key Features
 
-#### 🎥 **Screen Share Mode**
+#### **Screen Share Mode**
 - Share your entire screen or a specific window
 - AI analyzes your code visually using Gemini's vision capabilities
 - Point at code, explain problems, or ask questions naturally
 - Perfect for debugging, code reviews, and pair programming sessions
 
-#### 🔗 **GitHub Integration**
+#### **GitHub Integration**
 - Connect any GitHub repository with a personal access token
 - AI can:
   - Browse your file structure
@@ -36,19 +36,19 @@ Pair.AI creates a **real-time collaborative coding environment** that feels as n
   - Automatically create pull requests with fixes
 - Example: *"Fix the bug in `src/utils.ts`"* → AI reads the file, identifies the issue, fixes it, and opens a PR
 
-#### 🎤 **Voice-First Interaction**
+#### **Voice-First Interaction**
 - **Speech-to-Text**: Talk naturally using your browser's Web Speech API
 - **Text-to-Speech**: AI responds with natural voice using Gemini's TTS
 - Real-time conversation flow — no typing required
 - Visual indicators show when AI is listening, thinking, or speaking
 
-#### 💬 **Chat Sidebar**
+#### **Chat Sidebar**
 - Full conversation history
 - Type or speak your messages
 - See system messages when AI is reading files or creating PRs
 - Toggle sidebar on/off for a cleaner view
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 
